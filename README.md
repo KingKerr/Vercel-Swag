@@ -1,36 +1,67 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Vercel Swag Store
 
-## Getting Started
+A fictional storefront built with Next.js 16, React Server Components,
+Cache Components, Suspense, and Server Actions.
 
-First, run the development server:
+## Links
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Live application: [add verified production URL]
+- Repository: [add public repository URL]
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Local development
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Use Node.js 24.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Run `npm ci`.
+2. Copy `.env.example` to `.env.local`.
+3. Supply the assigned API bypass token.
+4. Run `npm run dev`.
 
-## Learn More
+## Verification
 
-To learn more about Next.js, take a look at the following resources:
+- `npm run lint`
+- `npm run test:unit`
+- `npm run build`
+- `npm run test:e2e`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Playwright starts the production server on port 3100.
+Build the application before running the E2E suite.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Rendering and data-freshness decisions
 
-## Deploy on Vercel
+| Resource | Strategy | Reason |
+| --- | --- | --- |
+| Featured products | `use cache`, hours profile | Reusable catalog content |
+| Product information | `use cache`, hours profile | Independent of live stock |
+| Categories | `use cache`, hours profile | Reusable filter options |
+| Promotions | Request-bound, Suspense | Upstream promotion can vary |
+| Stock | Request-bound, Suspense | Availability can change per request |
+| Cart | Uncached, session-dependent | Isolated to the browser session |
+| Search results | Server-rendered from URL parameters | Shareable filtering state |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Cart architecture
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Anonymous carts are stored by the supplied API.
+- The cart token is held in an HTTP-only session cookie.
+- Server Actions validate input and perform mutations.
+- Prices and totals come from the API.
+- Increasing quantities triggers a fresh stock check.
+- Reductions and removal do not depend on current stock.
+- A confirmed missing cart can be reset explicitly.
+- Other upstream failures do not clear the session.
+
+## Test coverage
+
+Document the suites and actual verified results here.
+
+Distinguish live browser integration tests from mocked action tests.
+
+## Known limitations
+
+- No checkout or payment processing.
+- Inventory checks are not atomic reservations.
+- Simultaneous mutations across tabs are not serialized.
+- Simultaneous first-time adds can race during cart creation.
+- An ambiguous failed mutation is not automatically retried.
+- Browser acceptance tests depend on upstream API availability.
+- Expired carts are reset rather than restored.
