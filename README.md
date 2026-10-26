@@ -5,7 +5,7 @@ Cache Components, Suspense, and Server Actions.
 
 ## Links
 
-- Live application: [add verified production URL]
+- Live application: https://vercel-swag-phi.vercel.app/
 - Repository: https://github.com/KingKerr/Vercel-Swag
 
 ## Local development
