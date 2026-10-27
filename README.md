@@ -51,10 +51,39 @@ Build the application before running the E2E suite.
 - Other upstream failures do not clear the session.
 
 ## Test coverage
+E2E Tests with Playwright:
+Running 7 tests using 1 worker
 
-Document the suites and actual verified results here.
+  ✓  1 …romium] › tests/e2e/storefront.spec.ts:11:5 › homepage displays at least six correctly contained products (3.4s)
+  ✓  2 …mium] › tests/e2e/storefront.spec.ts:52:5 › a featured product opens a detail page with purchase controls (5.7s)
+  ✓  3 [chromium] › tests/e2e/storefront.spec.ts:86:5 › search submits query and category into the URL (8.3s)
+  ✓  4 …hromium] › tests/e2e/storefront.spec.ts:126:5 › search distinguishes an empty result from a loading state (1.2s)
+  ✓  5 …mium] › tests/e2e/storefront.spec.ts:143:5 › invalid category displays validation instead of querying it (401ms)
+  ✓  6 [chromium] › tests/e2e/storefront.spec.ts:156:5 › empty cart opens, closes with Escape, and restores focus (2.0s)
+  ✓  7 [chromium] › tests/e2e/storefront.spec.ts:185:5 › mobile storefront does not overflow horizontally (2.5s)
 
-Distinguish live browser integration tests from mocked action tests.
+  7 passed (24.6s)
+
+Cart Tests with Vitest:  
+ ✓ tests/unit/cart-actions.test.ts (11 tests) 13ms
+   ✓ addToCartAction (5)
+     ✓ rejects an invalid quantity without calling the API 10ms
+     ✓ creates a cart lazily and saves its token before adding 1ms
+     ✓ checks existing cart quantity plus the requested addition 0ms
+     ✓ does not retry an ambiguous add failure 0ms
+     ✓ does not silently replace an expired cart during an add 0ms
+   ✓ editCartAction (3)
+     ✓ removes an item even if the quantity field is empty 0ms
+     ✓ allows quantity reductions without checking stock 0ms
+     ✓ rejects an increase above current stock 0ms
+   ✓ resetExpiredCartAction (3)
+     ✓ clears the session after a confirmed missing-cart response 0ms
+     ✓ preserves an active cart instead of clearing it 0ms
+     ✓ preserves the session when the API is unavailable 0ms
+
+ Test Files  1 passed (1)
+      Tests  11 passed (11)  
+
 
 ## Known limitations
 
