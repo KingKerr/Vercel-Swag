@@ -10,7 +10,8 @@ import {
   getProductBySlug,
 } from "@/lib/swag-api";
 import { ProductStockPanel } from "@/components/storefront/product-stock-panel";
-
+import { PurchasePanelSkeleton } from "@/components/storefront/purchase-panel-skeleton";
+import { ProductContentSkeleton } from "@/components/storefront/product-content-skeleton";
 import styles from "./product.module.css";
 
 type ProductPageProps = {
@@ -65,13 +66,7 @@ export default function ProductPage({
         ← Back to the collection
       </Link>
 
-      <Suspense
-        fallback={
-          <p className={styles.loading} role="status">
-            Loading product…
-          </p>
-        }
-      >
+      <Suspense fallback={<ProductContentSkeleton />}>
         <ProductContent params={params} />
       </Suspense>
     </main>
@@ -115,16 +110,15 @@ async function ProductContent({
         <p className={styles.description}>
           {product.description}
         </p>
-
-        <Suspense
-          fallback={
-            <div className={styles.purchasePanel} role="status">
-              Checking availability…
-            </div>
-          }
-        >
-          <ProductStockPanel productId={product.id} />
-        </Suspense>
+        <div className={styles.purchasePanel} data-testid="purchase-frame">
+            <Suspense fallback={<PurchasePanelSkeleton />}>
+              <ProductStockPanel productId={product.id} />  
+            </Suspense>
+            <p className={styles.purchaseNote}>
+                Availability is checked when this panel loads.
+                Items are not reserved.
+            </p>
+        </div>
       </section>
     </div>
   );

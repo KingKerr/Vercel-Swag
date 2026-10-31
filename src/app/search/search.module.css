@@ -42,15 +42,27 @@
   line-height: 1.8;
 }
 
+.controlsFrame {
+  margin-bottom: 40px;
+  padding-block: 24px 16px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
 .form {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 220px auto auto;
   align-items: end;
   gap: 16px;
-  margin-bottom: 48px;
-  padding-block: 24px;
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
+  margin: 0;
+  padding: 0;
+}
+
+.field label,
+.field > span {
+  font-size: 0.8rem;
+  font-weight: 550;
+  line-height: 1.2rem;
 }
 
 .field {
@@ -160,6 +172,75 @@
   outline-offset: 4px;
 }
 
+.controlsStatus {
+  box-sizing: border-box;
+  block-size: 3.2em;
+  margin: 12px 0 0;
+  overflow: auto;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+
+.resultsFrame {
+  min-inline-size: 0;
+}
+
+.resultsHeading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 0;
+}
+
+.resultsStatus {
+  box-sizing: border-box;
+  block-size: 4.8em;
+  margin: 0 0 20px;
+  padding-top: 12px;
+  overflow: auto;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+
+.resultsStatus:focus-visible {
+  outline: 3px solid #4568ff;
+  outline-offset: 3px;
+}
+
+.cardImagePlaceholder {
+  box-sizing: border-box;
+  inline-size: 100%;
+  aspect-ratio: 1;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.cardMetaPlaceholder {
+  box-sizing: content-box;
+  block-size: 3em;
+  padding-top: 16px;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.cardTextPlaceholder {
+  display: block;
+  inline-size: 65%;
+  block-size: 12px;
+  margin-top: 4px;
+  border-radius: 999px;
+  background: #e7e7eb;
+}
+
+.emptySlot {
+  visibility: hidden;
+}
+
+
 @media (max-width: 900px) {
   .page {
     width: calc(100% - 48px);
@@ -176,8 +257,7 @@
     padding-block: 40px 56px;
   }
 
-  .form {
-    grid-template-columns: 1fr;
+  .controlsFrame {
     margin-bottom: 32px;
   }
 

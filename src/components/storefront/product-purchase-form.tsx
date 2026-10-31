@@ -17,9 +17,11 @@ const initialState: AddToCartState = {
 export function ProductPurchaseForm({
   productId,
   stock,
+  availabilityUnavailable = false,
 }: {
   productId: string;
   stock: number;
+  availabilityUnavailable?: boolean;
 }) {
   const quantityId = useId();
   const messageId = useId();
@@ -31,6 +33,10 @@ export function ProductPurchaseForm({
 
   const unavailable = stock < 1;
 
+  const feedback = availabilityUnavailable
+    ? "Refresh the page to check availability again."
+    : state.message;
+
   return (
     <form action={formAction} className={styles.purchaseForm}>
       <input
@@ -40,7 +46,12 @@ export function ProductPurchaseForm({
       />
 
       <div className={styles.quantityField}>
-        <label htmlFor={quantityId}>Quantity</label>
+        <label
+          htmlFor={quantityId}
+          className={styles.quantityLabel}
+        >
+          Quantity
+        </label>
 
         <input
           id={quantityId}
@@ -53,7 +64,7 @@ export function ProductPurchaseForm({
           defaultValue={1}
           required
           disabled={pending || unavailable}
-          aria-describedby={state.message ? messageId : undefined}
+          aria-describedby={feedback ? messageId : undefined}
         />
       </div>
 
@@ -61,6 +72,7 @@ export function ProductPurchaseForm({
         type="submit"
         className={styles.addButton}
         disabled={pending || unavailable}
+        aria-busy={pending}
       >
         {pending ? "Adding…" : "Add to Cart"}
       </button>
@@ -71,8 +83,9 @@ export function ProductPurchaseForm({
         role="status"
         aria-live="polite"
         aria-atomic="true"
+        tabIndex={feedback ? 0 : undefined}
       >
-        {state.message}
+        {feedback}
       </p>
     </form>
   );

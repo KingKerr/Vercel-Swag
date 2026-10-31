@@ -13,6 +13,8 @@ import {
   editCartAction,
   resetExpiredCartAction,
 } from "@/app/actions/cart";
+
+import { CartTrigger } from "./cart-trigger";
 import type { CartSummary } from "@/lib/cart-api";
 
 import styles from "./cart-drawer.module.css";
@@ -49,31 +51,10 @@ export function CartDrawer({
 
   return (
     <>
-      <button
-        type="button"
-        className={styles.trigger}
-        aria-haspopup="dialog"
+      <CartTrigger 
+        count={status === "ready" ? cart?.totalItems ?? 0: null}
         onClick={openCart}
-      >
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.7"
-          aria-hidden="true"
-        >
-          <path d="M5 7h14l1 14H4L5 7Z" />
-          <path d="M9 8V6a3 3 0 0 1 6 0v2" />
-        </svg>
-
-        Cart
-
-        <span className={styles.badge}>
-          {status === "ready" ? cart?.totalItems ?? 0 : "—"}
-        </span>
-      </button>
+       />
 
       <dialog
         ref={dialogRef}

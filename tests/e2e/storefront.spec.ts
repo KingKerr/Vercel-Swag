@@ -131,10 +131,9 @@ test("search distinguishes an empty result from a loading state", async ({
   );
 
   await expect(
-    page.getByRole("heading", {
-      name: "No matching products",
-      exact: true,
-    }),
+    page.getByText("No matching products. Try another search or category.", 
+      {exact: true}
+    ),
   ).toBeVisible();
 
   await expect(productLinks(page)).toHaveCount(0);
@@ -146,7 +145,7 @@ test("invalid category displays validation instead of querying it", async ({
   await page.goto("/search?category=not-a-real-category");
 
   await expect(
-    page.getByText(
+    page.getByTestId("search-controls-frame").getByText(
       "That category is not available. Choose another category.",
       { exact: true },
     ),

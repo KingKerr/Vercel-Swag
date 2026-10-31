@@ -10,7 +10,6 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: {
     absolute: "Vercel Swag Store",
-    template: "%s | Vercel Swag Store",
   },
   description:
     "Developer apparel, desk essentials, and everyday gear inspired by the things you build.",

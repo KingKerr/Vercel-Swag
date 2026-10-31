@@ -2,6 +2,7 @@ import Link from "next/link";
 import styles from "./site-shell.module.css";
 import { Suspense } from "react";
 import { CartIndicator } from "./cart-indicator";
+import { CartTrigger } from "./cart-trigger";
 
 function VercelMark() {
   return (
@@ -34,15 +35,11 @@ export function SiteHeader() {
         <nav className={styles.navigation} aria-label="Main navigation">
           <Link href="/">Home</Link>
           <Link href="/search">Search</Link>
-          <Suspense
-            fallback={
-                <span className={styles.cartIndicator} aria-label="Loading cart">
-                    Cart <span className={styles.cartBadge}>...</span>
-                </span>
-            }
-           >
-            <CartIndicator />
-          </Suspense> 
+          <div className={styles.cartSlot} data-testid="cart-slot">
+            <Suspense fallback={<CartTrigger loading />}>
+                <CartIndicator />
+            </Suspense>
+          </div> 
         </nav>
       </div>
     </header>

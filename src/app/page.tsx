@@ -25,10 +25,11 @@ export const metadata: Metadata = {
 export default function HomePage() {
   return (
     <main id="main-content" tabIndex={-1} className={styles.home}>
-      <Suspense fallback={<PromotionFallback />}>
-        <PromotionBanner />
-      </Suspense>
-
+      <div className={styles.promotionFrame} data-testid="promotion-frame">
+        <Suspense fallback={<PromotionFallback />}>
+          <PromotionBanner />
+        </Suspense>
+      </div>
       <section className={styles.hero} aria-labelledby="hero-title">
         <div className={styles.heroCopy}>
           <p className={styles.eyebrow}>The developer collection</p>

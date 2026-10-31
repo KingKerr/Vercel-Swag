@@ -13,7 +13,9 @@ export async function ProductStockPanel({
 }) {
   await connection();
 
-  let stock: Awaited<ReturnType<typeof getProductStock>> | null = null;
+  let stock: Awaited<
+    ReturnType<typeof getProductStock>
+  > | null = null;
 
   try {
     stock = await getProductStock(productId);
@@ -28,44 +30,47 @@ export async function ProductStockPanel({
 
   if (stock === null) {
     return (
-      <div className={styles.purchasePanel}>
-        <p className={styles.outOfStock}>
-          Availability is temporarily unavailable.
+      <div data-testid="purchase-ready">
+        <p
+          className={`${styles.stockStatus} ${styles.outOfStock}`}
+        >
+          Availability temporarily unavailable
         </p>
 
-        <p className={styles.purchaseNote}>
-          Refresh the page to try again.
-        </p>
+        <ProductPurchaseForm
+          key={productId}
+          productId={productId}
+          stock={0}
+          availabilityUnavailable
+        />
       </div>
     );
   }
 
+  // The null case returned above, so stock is now non-null.
   const available = stock.inStock && stock.stock > 0;
 
+  const statusText = available
+    ? stock.lowStock
+      ? `Only ${stock.stock} available`
+      : `${stock.stock} available`
+    : "Currently out of stock";
+
   return (
-    <div className={styles.purchasePanel}>
+    <div data-testid="purchase-ready">
       <p
-        className={
+        className={`${styles.stockStatus} ${
           available ? styles.inStock : styles.outOfStock
-        }
+        }`}
       >
-        {available
-          ? stock.lowStock
-            ? `Only ${stock.stock} available`
-            : `${stock.stock} available`
-          : "Currently out of stock"}
+        {statusText}
       </p>
 
       <ProductPurchaseForm
         key={productId}
         productId={productId}
         stock={available ? stock.stock : 0}
-      />  
-      
-      <p className={styles.purchaseNote}>
-        Availability is checked when this panel loads.
-        Items are not reserved.
-      </p>
+      />
     </div>
   );
 }

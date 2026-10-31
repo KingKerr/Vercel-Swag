@@ -7,9 +7,18 @@ import {
   getCategories,
   searchProducts,
 } from "@/lib/swag-api";
-import { ProductGrid } from "@/components/storefront/product-grid";
-import { SearchForm } from "@/components/storefront/search-form";
+import {
+  getSearchState,
+  type SearchParams,
+} from "@/lib/search-state";
 
+import { SearchForm } from "@/components/storefront/search-form";
+import {
+  SearchResultSkeletons,
+  SearchResultSlots,
+} from "@/components/storefront/search-result-slots";
+
+import cardStyles from "@/app/home.module.css";
 import styles from "./search.module.css";
 
 export const metadata: Metadata = {
@@ -24,18 +33,9 @@ export const metadata: Metadata = {
   },
 };
 
-type SearchParams = Record<
-  string,
-  string | string[] | undefined
->;
-
 type SearchPageProps = {
   searchParams: Promise<SearchParams>;
 };
-
-function first(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] ?? "" : value ?? "";
-}
 
 export default function SearchPage({
   searchParams,
@@ -52,158 +52,202 @@ export default function SearchPage({
         <p>Browse the collection or search for something specific.</p>
       </header>
 
-      <Suspense fallback={<SearchLoading />}>
-        <SearchContent searchParams={searchParams} />
-      </Suspense>
+      <div
+        className={styles.controlsFrame}
+        data-testid="search-controls-frame"
+      >
+        <Suspense fallback={<SearchControlsSkeleton />}>
+          <SearchControls searchParams={searchParams} />
+        </Suspense>
+      </div>
+
+      <section
+        className={styles.resultsFrame}
+        aria-labelledby="search-results-title"
+        data-testid="search-results-frame"
+      >
+        <div className={styles.resultsHeading}>
+          <h2 id="search-results-title">Search results</h2>
+        </div>
+
+        <Suspense fallback={<SearchResultsFallback />}>
+          <SearchResults searchParams={searchParams} />
+        </Suspense>
+      </section>
     </main>
   );
 }
 
-async function SearchContent({
+async function SearchControls({
   searchParams,
 }: SearchPageProps) {
-  const params = await searchParams;
-
-  const query = first(params.q).trim();
-  const requestedCategory = first(params.category).trim();
-
-  let categories: Awaited<
-    ReturnType<typeof getCategories>
-  > | null = null;
+  let data: {
+    params: SearchParams;
+    categories: Awaited<ReturnType<typeof getCategories>>;
+  } | null = null;
 
   try {
-    categories = await getCategories();
+    const [params, categories] = await Promise.all([
+      searchParams,
+      getCategories(),
+    ]);
+
+    data = { params, categories };
   } catch (error) {
     unstable_rethrow(error);
 
     console.error(
-      "[storefront/search] Category request failed:",
+      "[storefront/search] Controls failed:",
       error,
     );
   }
 
-  if (categories === null) {
-    return (
-      <div className={styles.notice}>
-        <h2>Search is temporarily unavailable</h2>
-        <p>We couldn’t load the categories. Refresh to try again.</p>
-      </div>
-    );
+  if (data === null) {
+    return <SearchControlsSkeleton failed />;
   }
 
-  const validCategory =
-    requestedCategory === "" ||
-    categories.some(
-      (category) => category.slug === requestedCategory,
-    );
-
-  const category = validCategory ? requestedCategory : "";
-
-  const validationMessage =
-    query.length > 120
-      ? "Please keep your search to 120 characters or fewer."
-      : !validCategory
-        ? "That category is not available. Choose another category."
-        : null;
+  const state = getSearchState(data.params, data.categories);
 
   return (
     <>
       <SearchForm
-        key={`search-form:${JSON.stringify([query, category])}`}
-        query={query}
-        category={category}
-        categories={categories}
+        key={`search-form:${JSON.stringify([
+          state.query,
+          state.category,
+        ])}`}
+        query={state.query}
+        category={state.category}
+        categories={data.categories}
       />
 
-      {validationMessage ? (
-        <div className={styles.notice} role="status">
-          <p>{validationMessage}</p>
-        </div>
-      ) : (
-        <Suspense
-          key={`search-results:${JSON.stringify([query, category])}`}
-          fallback={<SearchLoading />}
-        >
-          <SearchResults query={query} category={category} />
-        </Suspense>
-      )}
+      <p className={styles.controlsStatus} role="status">
+        {state.validationMessage}
+      </p>
     </>
   );
 }
 
 async function SearchResults({
-  query,
-  category,
-}: {
-  query: string;
-  category: string;
-}) {
+  searchParams,
+}: SearchPageProps) {
   await connection();
 
   let products: Awaited<
     ReturnType<typeof searchProducts>
-  > | null = null;
+  > = [];
+
+  let message = "";
+  let failed = false;
 
   try {
-    products = await searchProducts({ query, category });
+    const [params, categories] = await Promise.all([
+      searchParams,
+      getCategories(),
+    ]);
+
+    const state = getSearchState(params, categories);
+
+    if (state.validationMessage) {
+      message = state.validationMessage;
+    } else {
+      products = await searchProducts({
+        query: state.query,
+        category: state.category,
+      });
+
+      if (products.length === 0) {
+        message = "No matching products. Try another search or category.";
+      } else {
+        const filtered = Boolean(state.query || state.category);
+
+        message = filtered
+          ? `Showing ${products.length} ${
+              products.length === 1 ? "product" : "products"
+            } · up to 5 matches`
+          : `Explore the collection · showing ${products.length} products`;
+      }
+    }
   } catch (error) {
     unstable_rethrow(error);
 
     console.error(
-      "[storefront/search] Product request failed:",
+      "[storefront/search] Results failed:",
       error,
     );
-  }
 
-  if (products === null) {
-    return (
-      <div className={styles.notice}>
-        <h2>We couldn’t load the products</h2>
-        <p>Submit your search again or refresh the page.</p>
-      </div>
-    );
-  }
-
-  const filtered = Boolean(query || category);
-
-  if (products.length === 0) {
-    return (
-      <section
-        className={styles.notice}
-        aria-labelledby="empty-search-title"
-      >
-        <h2 id="empty-search-title">No matching products</h2>
-
-        <p>
-          Try a different search term or choose another category.
-        </p>
-      </section>
-    );
+    failed = true;
+    message =
+      "We couldn’t load the products. Submit your search again or refresh.";
   }
 
   return (
-    <section aria-labelledby="search-results-title">
-      <div className={styles.resultsHeading}>
-        <h2 id="search-results-title">
-          {filtered ? "Search results" : "Explore the collection"}
-        </h2>
+    <div data-testid="search-results-ready">
+      <p
+        className={styles.resultsStatus}
+        role="status"
+        tabIndex={0}
+      >
+        {message}
+      </p>
 
-        <p role="status">
-          Showing {products.length}{" "}
-          {products.length === 1 ? "product" : "products"}
-          {filtered ? " · up to 5 matches" : ""}
-        </p>
-      </div>
-
-      <ProductGrid products={products} />
-    </section>
+      <ul className={cardStyles.productGrid}>
+        <SearchResultSlots products={failed ? [] : products} />
+      </ul>
+    </div>
   );
 }
 
-function SearchLoading() {
+function SearchResultsFallback() {
   return (
-    <div className={styles.loading} role="status">
-      Loading products…
+    <div
+      role="status"
+      aria-label="Loading products"
+      data-testid="search-results-loading"
+    >
+      <p className={styles.resultsStatus}>Loading products…</p>
+
+      <ul className={cardStyles.productGrid}>
+        <SearchResultSkeletons />
+      </ul>
     </div>
+  );
+}
+
+function SearchControlsSkeleton({
+  failed = false,
+}: {
+  failed?: boolean;
+}) {
+  return (
+    <>
+      <div
+        className={styles.form}
+        aria-hidden="true"
+      >
+        <div className={styles.field}>
+          <span>Search products</span>
+          <input disabled placeholder="Search products" />
+        </div>
+
+        <div className={styles.field}>
+          <span>Category</span>
+          <select disabled>
+            <option>All categories</option>
+          </select>
+        </div>
+
+        <button className={styles.submit} disabled type="button">
+          Search
+        </button>
+
+        <span className={styles.reset}>Clear</span>
+      </div>
+
+      <p className={styles.controlsStatus} role="status">
+        {failed
+          ? "Search controls are unavailable. Refresh to try again."
+          : "Loading search controls…"}
+      </p>
+    </>
   );
 }
