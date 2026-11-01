@@ -15,6 +15,7 @@
     "test:ppr": "playwright test --config=playwright.ppr.config.ts"
   },
   "dependencies": {
+    "eve": "1.0.0-rc.1",
     "next": "16.4.2",
     "react": "19.3.0",
     "react-dom": "19.3.0",

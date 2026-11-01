@@ -48,3 +48,7 @@ next-env.d.ts
 /playwright/.cache/
 /playwright-ppr-report/
 /test-results-ppr/
+
+# Eve generated artifacts
+/.eve/
+/.output/
