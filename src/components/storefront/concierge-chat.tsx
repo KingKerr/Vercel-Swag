@@ -3,11 +3,21 @@
 import { useRef, useState, type FormEvent } from "react";
 import { useEveAgent } from "eve/react";
 import { activeTurn, openInteractions } from "eve/events";
-
+import { KitProposalCard } from "./kit-proposal-card";
 import styles from "./concierge-chat.module.css";
 
-export function ConciergeChat() {
-  const agent = useEveAgent();
+export function ConciergeChat({
+  initialSessionId,
+}: {
+  initialSessionId: string;
+}) {
+  const agent = useEveAgent({
+    initialSession: {
+      sessionId: initialSessionId,
+      streamIndex: 0,
+    },
+    resume: true,
+  });
 
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -150,7 +160,7 @@ export function ConciergeChat() {
     }
   }
 
-  async function stop() {
+    async function stop() {
     if (stopDisabled || actionInFlight.current) {
       return;
     }
@@ -171,6 +181,19 @@ export function ConciergeChat() {
     }
   }
 
+  const latestKitCall = agent.messages
+    .flatMap((message) =>
+      message.parts.flatMap((part) =>
+        part.type === "tool" &&
+        part.name === "validate_kit"
+          ? [part]
+          : [],
+      ),
+    )
+    .at(-1);
+
+  
+
   return (
     <section
       className={styles.panel}
@@ -183,7 +206,7 @@ export function ConciergeChat() {
 
         <h1 id="concierge-title">Swag Concierge</h1>
 
-        <p>Explore the real catalog. No cart changes.</p>
+        <p>Explore the catalog and build a kit. Cart additions require your explicit approval on the review page.</p>
       </header>
 
       <div
@@ -241,6 +264,13 @@ export function ConciergeChat() {
           Tool calls in this conversation: {toolCalls}
         </p>
       </div>
+      {latestKitCall?.state === "completed" && (
+        <KitProposalCard
+          key={latestKitCall.callId}
+          output={latestKitCall.output}
+          disabled={composerDisabled}
+        />
+       )}
 
       {pendingApprovals.map(
         ({ interactionId, request }) => (
