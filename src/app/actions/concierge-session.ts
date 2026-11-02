@@ -3,10 +3,10 @@
 import { Client } from "eve/client";
 import { unstable_rethrow } from "next/navigation";
 
+import { conciergeEnabled } from "@/lib/concierge-access";
 import { getConciergeDb } from "@/lib/concierge-db";
 import { ensureShopperSession } from "@/lib/concierge-session";
 import { reserveConciergeUsage } from "../../../shared/concierge-usage";
-import { conciergeEnabled } from "@/lib/concierge-access";
 
 export type StartConciergeState = {
   status: "idle" | "ready" | "error";
@@ -41,6 +41,10 @@ function agentOrigin() {
     throw new Error("The agent origin must be an origin only.");
   }
 
+  if (!["http:", "https:"].includes(url.protocol)) {
+    throw new Error("Unsupported agent origin.");
+  }
+
   if (
     process.env.NODE_ENV === "production" &&
     url.protocol !== "https:"
@@ -48,19 +52,20 @@ function agentOrigin() {
     throw new Error("The deployed agent origin must use HTTPS.");
   }
 
-  if (!["http:", "https:"].includes(url.protocol)) {
-    throw new Error("Unsupported agent origin.");
-  }
-
   return url.origin;
+}
+
+function safeDiagnosticCode(value: unknown) {
+  return typeof value === "string" &&
+    /^[A-Za-z0-9_-]{1,80}$/.test(value)
+    ? value
+    : undefined;
 }
 
 export async function startConciergeAction(
   _previousState: StartConciergeState,
   _formData: FormData,
 ): Promise<StartConciergeState> {
-  // Keep disabled in deployed builds until access/usage controls
-  // and the isolation tests are complete.
   if (!conciergeEnabled()) {
     return {
       status: "error",
@@ -68,11 +73,16 @@ export async function startConciergeAction(
     };
   }
 
+  let stage = "initializing";
+
   try {
+    stage = "shopper-session";
+
     const shopper = await ensureShopperSession();
     const sql = getConciergeDb();
 
-    // Reuse the shopper's latest accessible conversation.
+    stage = "existing-conversation-lookup";
+
     const existing = await sql`
       SELECT e.eve_session_id
       FROM concierge.eve_sessions AS e
@@ -95,10 +105,14 @@ export async function startConciergeAction(
       };
     }
 
+    stage = "bootstrap-credential-configuration";
+
     const secret = process.env.CONCIERGE_BOOTSTRAP_SECRET;
 
     if (!secret || !/^[0-9a-f]{64}$/i.test(secret)) {
-      throw new Error("The bootstrap credential is missing.");
+      throw new Error(
+        "CONCIERGE_BOOTSTRAP_SECRET must be 64 hex characters.",
+      );
     }
 
     const headers: Record<string, string> = {
@@ -110,20 +124,9 @@ export async function startConciergeAction(
 
     if (protectionBypass) {
       headers["x-vercel-protection-bypass"] = protectionBypass;
-    } 
-
-    const allowed = await reserveConciergeUsage(
-        "bootstrap", 
-        "shopper.id",
-    ); 
-
-    if (!allowed) {
-        return {
-            status: "error", 
-            message:
-              "This demo's new-conversation allowance has been reached.",
-        };
     }
+
+    stage = "agent-client-configuration";
 
     const client = new Client({
       baseUrl: agentOrigin(),
@@ -133,11 +136,29 @@ export async function startConciergeAction(
       headers,
     });
 
+    stage = "bootstrap-usage-reservation";
+
+    const allowed = await reserveConciergeUsage(
+      "bootstrap",
+      shopper.id,
+    );
+
+    if (!allowed) {
+      return {
+        status: "error",
+        message:
+          "This demo's new-conversation allowance has been reached.",
+      };
+    }
+
+    stage = "eve-session-creation";
+
     const { session } = await client.sessions.create({
       signal: AbortSignal.timeout(20_000),
     });
 
-    // Register ownership before revealing the session ID.
+    stage = "ownership-registration";
+
     const registered = await sql`
       INSERT INTO concierge.eve_sessions (
         eve_session_id,
@@ -169,6 +190,34 @@ export async function startConciergeAction(
     };
   } catch (error) {
     unstable_rethrow(error);
+
+    const details =
+      typeof error === "object" && error !== null
+        ? (error as Record<string, unknown>)
+        : {};
+
+    const status =
+      typeof details.status === "number"
+        ? details.status
+        : typeof details.statusCode === "number"
+          ? details.statusCode
+          : undefined;
+
+    console.error("[concierge/bootstrap]", {
+      stage,
+      errorName: safeDiagnosticCode(
+        error instanceof Error ? error.name : "NonError",
+      ),
+      code: safeDiagnosticCode(details.code),
+      status,
+      databaseConfigured: Boolean(process.env.DATABASE_URL),
+      bootstrapSecretValid: /^[0-9a-f]{64}$/i.test(
+        process.env.CONCIERGE_BOOTSTRAP_SECRET ?? "",
+      ),
+      automationBypassConfigured: Boolean(
+        process.env.VERCEL_AUTOMATION_BYPASS_SECRET,
+      ),
+    });
 
     return {
       status: "error",
