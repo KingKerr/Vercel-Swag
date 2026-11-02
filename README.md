@@ -52,6 +52,7 @@ Build the application before running the E2E suite.
 
 ## Test coverage
 E2E Tests with Playwright:
+```
 Running 7 tests using 1 worker
 
   ✓  1 …romium] › tests/e2e/storefront.spec.ts:11:5 › homepage displays at least six correctly contained products (3.4s)
@@ -63,8 +64,10 @@ Running 7 tests using 1 worker
   ✓  7 [chromium] › tests/e2e/storefront.spec.ts:185:5 › mobile storefront does not overflow horizontally (2.5s)
 
   7 passed (24.6s)
+```
 
 Cart Tests with Vitest:  
+```
  ✓ tests/unit/cart-actions.test.ts (11 tests) 13ms
    ✓ addToCartAction (5)
      ✓ rejects an invalid quantity without calling the API 10ms
@@ -83,7 +86,7 @@ Cart Tests with Vitest:
 
  Test Files  1 passed (1)
       Tests  11 passed (11)  
-
+```
 
 ## Known limitations
 
