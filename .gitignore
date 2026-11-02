@@ -49,6 +49,11 @@ next-env.d.ts
 /playwright-ppr-report/
 /test-results-ppr/
 
-# Eve generated artifacts
-/.eve/
-/.output/
+# Eve generated output
+.eve/
+.output/
+
+
+# Local environment files and backups
+.env.local
+.env.local.*
